@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Cafe Advanced</title>
+<style>
+body{margin:0;font-family:Arial;background:#0f0f0f;color:#fff}
+header{padding:15px;text-align:center;background:#3e2723;position:sticky;top:0}
+.topBar{display:flex;justify-content:center;align-items:center;gap:10px;padding:10px;background:#1b1b1b;position:sticky;top:60px;z-index:10}
+select{padding:8px;border-radius:6px;border:none}
+.menu{display:flex;flex-wrap:wrap;justify-content:center;padding:10px}
+.card{background:#1e1e1e;margin:10px;padding:10px;border-radius:12px;width:160px;box-shadow:0 0 10px rgba(0,0,0,0.5)}
+.card img{width:100%;border-radius:10px;height:100px;object-fit:cover}
+button{background:#795548;color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer}
+button:hover{background:#a1887f}
+.cartBar{position:fixed;bottom:0;width:100%;background:#000;padding:10px;display:flex;justify-content:space-between;align-items:center}
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center}
+.modal-content{background:#222;padding:20px;border-radius:10px;width:90%;max-width:400px}
+.toast{position:fixed;top:20px;right:20px;background:#4caf50;padding:10px;border-radius:5px;display:none;z-index:999}
+.cartItem{display:flex;justify-content:space-between;align-items:center;margin:5px 0;padding:5px;background:#111;border-radius:6px}
+.smallBtn{padding:2px 6px;font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+<h2>☕ Smart Cafe</h2>
+</header>
+
+<div class="topBar">
+<label>Table:</label>
+<select id="tableSelect">
+<option value="1">Table 1</option>
+<option value="2">Table 2</option>
+<option value="3">Table 3</option>
+<option value="4">Table 4</option>
+<option value="5">Table 5</option>
+<option value="6">Table 6</option>
+</select>
+</div>
+
+<div class="menu" id="menu"></div>
+
+<div class="cartBar">
+<span>Cart: <span id="count">0</span></span>
+<span id="total">Rs. 0</span>
+<button id="viewBtn">View</button>
+</div>
+
+<div class="modal" id="modal">
+<div class="modal-content">
+<h3>Your Order</h3>
+<div id="cartItems"></div>
+<h4 id="finalTotal"></h4>
+<button id="confirmBtn">Confirm Order</button>
+<button id="clearBtn">Clear Cart</button>
+<button id="closeBtn">Close</button>
+</div>
+</div>
+
+<div class="toast" id="toast">Done</div>
+
+<script>
+let table="1";
+let cart=[];
+
+const menu=[
+{name:"Coffee",price:100,img:"https://source.unsplash.com/200x150/?coffee"},
+{name:"Tea",price:50,img:"https://source.unsplash.com/200x150/?tea"},
+{name:"Burger",price:250,img:"https://source.unsplash.com/200x150/?burger"},
+{name:"Pizza",price:500,img:"https://source.unsplash.com/200x150/?pizza"}
+];
+
+function setTable(){
+table=document.getElementById("tableSelect").value;
+showToast("Table selected: "+table);
+}
+
+function render(){
+const m=document.getElementById("menu");
+m.innerHTML="";
+
+menu.forEach((item,idx)=>{
+const div=document.createElement("div");
+div.className="card";
+div.innerHTML=`
+<img src="${item.img}">
+<h4>${item.name}</h4>
+<p>Rs. ${item.price}</p>
+<button class="addBtn" data-id="${idx}" type="button">Add to Cart</button>
+`;
+m.appendChild(div);
+});
+
+// EVENT DELEGATION (FIX FOR BLINK ISSUE)
+document.querySelectorAll(".addBtn").forEach(btn=>{
+btn.addEventListener("click",function(e){
+let id=parseInt(this.dataset.id);
+add(id);
+});
+});
+}
+
+function add(i){
+let item=menu[i];
+let found=cart.find(c=>c.name===item.name);
+if(found){found.qty++;}else{cart.push({...item,qty:1});}
+update();
+showToast("Added to cart");
+}
+
+function removeItem(index){
+cart.splice(index,1);
+update();
+openCart();
+showToast("Item removed");
+}
+
+function clearCart(){
+cart=[];
+update();
+openCart();
+showToast("Cart cleared");
+}
+
+function update(){
+let count=cart.reduce((a,b)=>a+b.qty,0);
+let total=cart.reduce((a,b)=>a+b.price*b.qty,0);
+document.getElementById("count").innerText=count;
+document.getElementById("total").innerText="Rs. "+total;
+}
+
+function openCart(){
+document.getElementById("modal").style.display="flex";
+let box=document.getElementById("cartItems");
+box.innerHTML="";
+let total=0;
+
+cart.forEach((i,idx)=>{
+let div=document.createElement("div");
+div.className="cartItem";
+div.innerHTML=`
+<span>${i.name} x${i.qty} = Rs. ${i.price*i.qty}</span>
+<button class="smallBtn" onclick="removeItem(${idx})">Delete</button>
+`;
+box.appendChild(div);
+total+=i.price*i.qty;
+});
+
+document.getElementById("finalTotal").innerText="Total: Rs. "+total;
+}
+
+function closeCart(){
+document.getElementById("modal").style.display="none";
+}
+
+function checkout(){
+let msg=`Table No: ${table}%0AOrder:%0A`;
+let total=0;
+cart.forEach(i=>{
+msg+=`- ${i.name} x${i.qty}%0A`;
+total+=i.price*i.qty;
+});
+msg+=`Total: Rs. ${total}`;
+window.location.href=`https://wa.me/97798XXXXXXXX?text=${msg}`;
+}
+
+function showToast(text="Done"){
+let t=document.getElementById("toast");
+t.innerText=text;
+t.style.display="block";
+setTimeout(()=>t.style.display="none",1500);
+}
+
+window.addEventListener("load",()=>{
+render();
+update();
+
+document.getElementById("tableSelect").addEventListener("change",setTable);
+document.getElementById("viewBtn").addEventListener("click",openCart);
+document.getElementById("closeBtn").addEventListener("click",closeCart);
+document.getElementById("confirmBtn").addEventListener("click",checkout);
+document.getElementById("clearBtn").addEventListener("click",clearCart);
+});
+</script>
+
+</body>
+</html>
