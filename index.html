@@ -14,12 +14,32 @@ select{padding:8px;border-radius:6px;border:none}
 .card img{width:100%;border-radius:10px;height:100px;object-fit:cover}
 button{background:#795548;color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer}
 button:hover{background:#a1887f}
-.cartBar{position:fixed;bottom:0;width:100%;background:#000;padding:10px;display:flex;justify-content:space-between;align-items:center}
+.cartBar{position:fixed;bottom:0;width:100%;background:#000;padding:10px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.midGroup{display:flex;gap:10px}
 .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center}
 .modal-content{background:#222;padding:20px;border-radius:10px;width:90%;max-width:400px}
 .toast{position:fixed;top:20px;right:20px;background:#4caf50;padding:10px;border-radius:5px;display:none;z-index:999}
-.cartItem{display:flex;justify-content:space-between;align-items:center;margin:5px 0;padding:5px;background:#111;border-radius:6px}
+.cartItem{display:flex;justify-content:space-between;align-items:center;margin:6px 0;padding:8px;background:#111;border-radius:6px}
+.qtyBox{display:flex;align-items:center;gap:5px}
+.qtyBtn{padding:2px 8px;font-size:14px}
 .smallBtn{padding:2px 6px;font-size:12px}
+.addModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;justify-content:center;align-items:center}
+.addModal-content{background:#222;padding:20px;border-radius:10px;width:90%;max-width:300px;text-align:center}
+@media (max-width: 768px) {
+body { font-size: 14px; }
+header { padding: 10px; }
+.topBar { padding: 5px; }
+.menu { padding: 5px; }
+.card { width: calc(50% - 10px); margin: 5px; }
+.cartBar { padding: 5px; }
+.modal-content { max-width: 350px; padding: 15px; }
+.addModal-content { max-width: 280px; padding: 15px; }
+}
+@media (max-width: 480px) {
+.card { width: calc(100% - 10px); }
+.qtyBox { gap: 3px; }
+.qtyBtn { padding: 1px 6px; font-size: 12px; }
+}
 </style>
 </head>
 <body>
@@ -44,8 +64,11 @@ button:hover{background:#a1887f}
 
 <div class="cartBar">
 <span>Cart: <span id="count">0</span></span>
+<div class="midGroup">
 <span id="total">Rs. 0</span>
 <button id="viewBtn">View</button>
+</div>
+<div></div>
 </div>
 
 <div class="modal" id="modal">
@@ -56,6 +79,23 @@ button:hover{background:#a1887f}
 <button id="confirmBtn">Confirm Order</button>
 <button id="clearBtn">Clear Cart</button>
 <button id="closeBtn">Close</button>
+</div>
+</div>
+
+<div class="addModal" id="addModal">
+<div class="addModal-content">
+<h3>Add to Cart</h3>
+<img id="addItemImg" style="width:100%;border-radius:10px;margin-bottom:10px;">
+<h4 id="addItemName"></h4>
+<p id="addItemPrice"></p>
+<div class="qtyBox" style="justify-content:center;margin:10px 0;">
+<button id="addDecreaseBtn" class="qtyBtn">-</button>
+<span id="addQty">1</span>
+<button id="addIncreaseBtn" class="qtyBtn">+</button>
+</div>
+<p id="addTotal" style="font-weight:bold;"></p>
+<button id="addConfirmBtn">Add to Cart</button>
+<button id="addCloseBtn">Cancel</button>
 </div>
 </div>
 
@@ -88,17 +128,9 @@ div.innerHTML=`
 <img src="${item.img}">
 <h4>${item.name}</h4>
 <p>Rs. ${item.price}</p>
-<button class="addBtn" data-id="${idx}" type="button">Add to Cart</button>
+<button onclick="openAddModal(${idx})">Add to Cart</button>
 `;
 m.appendChild(div);
-});
-
-// EVENT DELEGATION (FIX FOR BLINK ISSUE)
-document.querySelectorAll(".addBtn").forEach(btn=>{
-btn.addEventListener("click",function(e){
-let id=parseInt(this.dataset.id);
-add(id);
-});
 });
 }
 
@@ -110,11 +142,17 @@ update();
 showToast("Added to cart");
 }
 
-function removeItem(index){
-cart.splice(index,1);
+function increase(index){
+cart[index].qty++;
 update();
 openCart();
-showToast("Item removed");
+}
+
+function decrease(index){
+cart[index].qty--;
+if(cart[index].qty<=0){cart.splice(index,1);} 
+update();
+openCart();
 }
 
 function clearCart(){
@@ -141,8 +179,12 @@ cart.forEach((i,idx)=>{
 let div=document.createElement("div");
 div.className="cartItem";
 div.innerHTML=`
-<span>${i.name} x${i.qty} = Rs. ${i.price*i.qty}</span>
-<button class="smallBtn" onclick="removeItem(${idx})">Delete</button>
+<span>${i.name} = Rs. ${i.price*i.qty}</span>
+<div class="qtyBox">
+<button class="qtyBtn" onclick="decrease(${idx})">-</button>
+<span>${i.qty}</span>
+<button class="qtyBtn" onclick="increase(${idx})">+</button>
+</div>
 `;
 box.appendChild(div);
 total+=i.price*i.qty;
@@ -163,7 +205,7 @@ msg+=`- ${i.name} x${i.qty}%0A`;
 total+=i.price*i.qty;
 });
 msg+=`Total: Rs. ${total}`;
-window.location.href=`https://wa.me/97798XXXXXXXX?text=${msg}`;
+window.location.href=`https://wa.me/9779768434252?text=${msg}`;
 }
 
 function showToast(text="Done"){
@@ -171,6 +213,54 @@ let t=document.getElementById("toast");
 t.innerText=text;
 t.style.display="block";
 setTimeout(()=>t.style.display="none",1500);
+}
+
+let currentAddIndex;
+
+function openAddModal(i){
+let item=menu[i];
+document.getElementById("addModal").style.display="flex";
+document.getElementById("addItemName").innerText=item.name;
+document.getElementById("addItemImg").src=item.img;
+document.getElementById("addItemPrice").innerText="Rs. "+item.price;
+document.getElementById("addQty").innerText=1;
+document.getElementById("addTotal").innerText="Total: Rs. "+item.price;
+currentAddIndex=i;
+}
+
+function increaseAdd(){
+let qty=parseInt(document.getElementById("addQty").innerText);
+qty++;
+document.getElementById("addQty").innerText=qty;
+updateAddTotal();
+}
+
+function decreaseAdd(){
+let qty=parseInt(document.getElementById("addQty").innerText);
+if(qty>1)qty--;
+document.getElementById("addQty").innerText=qty;
+updateAddTotal();
+}
+
+function updateAddTotal(){
+let qty = parseInt(document.getElementById("addQty").innerText);
+let item = menu[currentAddIndex];
+let total = item.price * qty;
+document.getElementById("addTotal").innerText = "Total: Rs. " + total;
+}
+
+function addToCart(){
+let qty=parseInt(document.getElementById("addQty").innerText);
+let item=menu[currentAddIndex];
+let found=cart.find(c=>c.name===item.name);
+if(found){found.qty+=qty;}else{cart.push({...item,qty:qty});}
+update();
+closeAddModal();
+showToast("Added to cart");
+}
+
+function closeAddModal(){
+document.getElementById("addModal").style.display="none";
 }
 
 window.addEventListener("load",()=>{
@@ -182,6 +272,10 @@ document.getElementById("viewBtn").addEventListener("click",openCart);
 document.getElementById("closeBtn").addEventListener("click",closeCart);
 document.getElementById("confirmBtn").addEventListener("click",checkout);
 document.getElementById("clearBtn").addEventListener("click",clearCart);
+document.getElementById("addIncreaseBtn").addEventListener("click", increaseAdd);
+document.getElementById("addDecreaseBtn").addEventListener("click", decreaseAdd);
+document.getElementById("addConfirmBtn").addEventListener("click", addToCart);
+document.getElementById("addCloseBtn").addEventListener("click", closeAddModal);
 });
 </script>
 
